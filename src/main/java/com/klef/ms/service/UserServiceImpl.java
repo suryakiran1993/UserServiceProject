@@ -7,6 +7,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.klef.ms.client.OrderClient;
@@ -38,13 +39,15 @@ public class UserServiceImpl implements UserService
 	
 	private final JwtUtil jwtUtil;
 
+    private final PasswordEncoder passwordEncoder;
+
     @Override
     public UserResponse saveUser(UserRequest request) 
     {
         User user = User.builder()
                 .name(request.getName())
                 .email(request.getEmail())
-                .password(request.getPassword())
+                .password(passwordEncoder.encode(request.getPassword()))
                 .contact(request.getContact())
                 .role(request.getRole())
                 .build();
@@ -84,7 +87,7 @@ public class UserServiceImpl implements UserService
 
         user.setName(request.getName());
         user.setEmail(request.getEmail());
-        user.setPassword(request.getPassword());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setContact(request.getContact());
         user.setRole(request.getRole());
 
@@ -151,12 +154,13 @@ public class UserServiceImpl implements UserService
 	@Override
 	public UserResponse userLogin(LoginRequest request) 
 	{
-		  User user = repository.findByEmailAndPassword(
-		            request.getEmail(),
-		            request.getPassword())
-		            .orElseThrow(() ->
-		                    new UnauthorizedException(
-		                            "Invalid Email or Password"));
+                  User user = repository.findByEmail(request.getEmail())
+                            .filter(foundUser -> passwordEncoder.matches(
+                                    request.getPassword(),
+                                    foundUser.getPassword()))
+                            .orElseThrow(() ->
+                                    new UnauthorizedException(
+                                            "Invalid Email or Password"));
 
 		    UserDetails userDetails =
 		            org.springframework.security.core.userdetails.User
