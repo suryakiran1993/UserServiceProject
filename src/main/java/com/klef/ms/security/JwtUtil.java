@@ -19,6 +19,9 @@ public class JwtUtil
     @Value("${jwt.secret}")
     private String SECRET;
 
+        @Value("${jwt.expiration}")
+        private long expiration;
+
     // Generate JWT
     public String generateToken(UserDetails userDetails) 
     {
@@ -32,7 +35,7 @@ public class JwtUtil
                 .claim("role", role)
                 .setIssuedAt(new Date())
                 .setExpiration(
-                        new Date(System.currentTimeMillis() + 1000 * 60 * 10)
+                        new Date(System.currentTimeMillis() + expiration)
                 )
                 .setId(UUID.randomUUID().toString())
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)

@@ -1,5 +1,6 @@
 package com.klef.ms.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
@@ -22,6 +23,12 @@ public class UserRequest
     private String contact;
 
     @NotBlank(message = "Role is required")
+    @Pattern(regexp = "ADMIN|MANAGER|USER", message = "Role must be one of ADMIN, MANAGER, USER")
+    @Schema(
+        description = "User role",
+        allowableValues = {"ADMIN", "MANAGER", "USER"},
+        example = "USER"
+    )
     private String role;
 
 }

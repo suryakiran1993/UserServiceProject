@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -45,24 +46,28 @@ public class UserController
            return new ResponseEntity<>(service.saveUser(request), HttpStatus.CREATED);
        }
 
+       @PreAuthorize("hasRole('ADMIN')")
        @GetMapping("displayall")
        public ResponseEntity<List<UserResponse>> getAllUsers() 
        {
            return ResponseEntity.ok(service.getAllUsers());
        }
 
+       @PreAuthorize("hasAnyRole('ADMIN','USER','MANAGER')")
        @GetMapping("display/{id}")
        public ResponseEntity<UserResponse> getUserById(@PathVariable Long id) 
        {
            return ResponseEntity.ok(service.getUserById(id));
        }
 
+       @PreAuthorize("hasAnyRole('ADMIN','MANAGER')")
        @PutMapping("update/{id}")
        public ResponseEntity<UserResponse> updateUser(@PathVariable Long id,@Valid @RequestBody UserRequest request) 
        {
            return ResponseEntity.ok( service.updateUser(id, request));
        }
 
+       @PreAuthorize("hasRole('ADMIN')")
        @DeleteMapping("delete/{id}")
        public ResponseEntity<String> deleteUser(@PathVariable Long id) 
        {
@@ -71,6 +76,7 @@ public class UserController
            return ResponseEntity.ok("User deleted successfully.");
        }
        
+       @PreAuthorize("hasAnyRole('ADMIN','MANAGER','USER')")
        @GetMapping("/allproducts")
        public ResponseEntity<List<ProductResponse>> displayallProducts()
        {
@@ -79,6 +85,7 @@ public class UserController
     	   return ResponseEntity.ok(products);
        }
        
+       @PreAuthorize("hasAnyRole('ADMIN','MANAGER','USER')")
        @GetMapping("/displayordersbyuserid")
        public ResponseEntity<List<OrderResponse>> displayordersbyuserid(@RequestParam Long userid)
        {

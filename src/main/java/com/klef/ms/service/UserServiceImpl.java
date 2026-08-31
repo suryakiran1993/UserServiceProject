@@ -2,10 +2,10 @@ package com.klef.ms.service;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,6 +18,7 @@ import com.klef.ms.dto.OrderResponse;
 import com.klef.ms.dto.ProductResponse;
 import com.klef.ms.dto.UserRequest;
 import com.klef.ms.dto.UserResponse;
+import com.klef.ms.entity.Role;
 import com.klef.ms.entity.User;
 import com.klef.ms.exception.ResourceNotFoundException;
 import com.klef.ms.exception.UnauthorizedException;
@@ -38,19 +39,27 @@ public class UserServiceImpl implements UserService
 	
 	private final OrderClient orderclient;
 	
-	private final JwtUtil jwtUtil;
-
     private final PasswordEncoder passwordEncoder;
+
+    private final JwtUtil jwtUtil;
 
     @Override
     public UserResponse saveUser(UserRequest request) 
     {
+        Role userRole;
+
+        try {
+            userRole = Role.valueOf(request.getRole().trim().toUpperCase());
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Role must be one of ADMIN, MANAGER, USER");
+        }
+
         User user = User.builder()
                 .name(request.getName())
-                .email(normalizeEmail(request.getEmail()))
+                .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .contact(request.getContact())
-                .role(request.getRole())
+                .role(userRole)
                 .build();
 
         User savedUser = repository.save(user);
@@ -86,11 +95,19 @@ public class UserServiceImpl implements UserService
                 .orElseThrow(() ->
                         new ResourceNotFoundException("User not found with id : " + id));
 
+        Role userRole;
+
+        try {
+            userRole = Role.valueOf(request.getRole().trim().toUpperCase());
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Role must be one of ADMIN, MANAGER, USER");
+        }
+
         user.setName(request.getName());
-        user.setEmail(normalizeEmail(request.getEmail()));
+        user.setEmail(request.getEmail());
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setContact(request.getContact());
-        user.setRole(request.getRole());
+        user.setRole(userRole);
 
         User updatedUser = repository.save(user);
 
@@ -109,12 +126,18 @@ public class UserServiceImpl implements UserService
 
     private UserResponse mapToResponse(User user) 
     {
+        return mapToResponse(user, null);
+    }
+
+    private UserResponse mapToResponse(User user, String token) 
+    {
         return UserResponse.builder()
                 .id(user.getId())
                 .name(user.getName())
                 .email(user.getEmail())
                 .contact(user.getContact())
-                .role(user.getRole())
+                .role(user.getRole().name())
+                .token(token)
                 .build();
     }
 
@@ -155,37 +178,24 @@ public class UserServiceImpl implements UserService
 	@Override
 	public UserResponse userLogin(LoginRequest request) 
 	{
-                  User user = repository.findByEmail(normalizeEmail(request.getEmail()))
-                            .filter(foundUser -> passwordEncoder.matches(
-                                    request.getPassword(),
-                                    foundUser.getPassword()))
-                            .orElseThrow(() ->
-                                    new UnauthorizedException(
-                                            "Invalid Email or Password"));
+        User user = repository.findByEmail(request.getEmail())
+                .filter(foundUser -> passwordEncoder.matches(
+                        request.getPassword(),
+                        foundUser.getPassword()))
+                .orElseThrow(() ->
+                        new UnauthorizedException(
+                                "Invalid Email or Password"));
 
-		    UserDetails userDetails =
-		            org.springframework.security.core.userdetails.User
-		                    .withUsername(user.getEmail())
-		                    .password(user.getPassword())
-		                    .roles(user.getRole())
-		                    .build();
+        UserDetails userDetails = loadUserByUsername(user.getEmail());
+        String token = jwtUtil.generateToken(userDetails);
 
-		    String token = jwtUtil.generateToken(userDetails);
+        return mapToResponse(user, token);
+    }
 
-		    return UserResponse.builder()
-		            .id(user.getId())
-		            .name(user.getName())
-		            .email(user.getEmail())
-		            .contact(user.getContact())
-		            .role(user.getRole())
-		            .token(token)
-		            .build();
-	}
-	
 	@Override
 	public UserDetails loadUserByUsername(String username)
 	{
-            User user = repository.findByEmail(normalizeEmail(username))
+            User user = repository.findByEmail(username)
 	            .orElseThrow(() ->
 	                    new UsernameNotFoundException(
 	                            "User not found with email: " + username));
@@ -193,14 +203,7 @@ public class UserServiceImpl implements UserService
 	    return org.springframework.security.core.userdetails.User
 	            .withUsername(user.getEmail())
 	            .password(user.getPassword())
-	            .roles(user.getRole())
+	            .authorities(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
 	            .build();
 	}
-
-        private String normalizeEmail(String email)
-        {
-                return email.trim().toLowerCase(Locale.ROOT);
-        }
-	
-
 }

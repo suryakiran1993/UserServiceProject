@@ -35,14 +35,14 @@ public class JwtFilter extends OncePerRequestFilter
 
         String path = request.getServletPath();
 
-        // Public endpoints
-        
-        if (path.startsWith("/user/login")
+        boolean isPublicEndpoint = path.equals("/user/")
+                || path.equals("/user/login")
+                || path.equals("/user/add")
                 || path.startsWith("/swagger-ui")
-                || path.startsWith("/v3/api-docs")
-                || path.startsWith("/user/add")) 
-        {
+                || path.startsWith("/v3/api-docs");
 
+        // Public endpoints
+        if (isPublicEndpoint) {
             chain.doFilter(request, response);
             return;
         }

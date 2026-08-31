@@ -1,5 +1,7 @@
 package com.klef.ms.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import lombok.*;
 
 @Data
@@ -11,5 +13,6 @@ public class UserResponse
     private String email;
     private String contact;
     private String role;
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     private String token;
 }
