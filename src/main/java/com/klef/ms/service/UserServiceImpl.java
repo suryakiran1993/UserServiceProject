@@ -2,6 +2,7 @@ package com.klef.ms.service;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,7 +47,7 @@ public class UserServiceImpl implements UserService
     {
         User user = User.builder()
                 .name(request.getName())
-                .email(request.getEmail())
+                .email(normalizeEmail(request.getEmail()))
                 .password(passwordEncoder.encode(request.getPassword()))
                 .contact(request.getContact())
                 .role(request.getRole())
@@ -86,7 +87,7 @@ public class UserServiceImpl implements UserService
                         new ResourceNotFoundException("User not found with id : " + id));
 
         user.setName(request.getName());
-        user.setEmail(request.getEmail());
+        user.setEmail(normalizeEmail(request.getEmail()));
         user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setContact(request.getContact());
         user.setRole(request.getRole());
@@ -154,7 +155,7 @@ public class UserServiceImpl implements UserService
 	@Override
 	public UserResponse userLogin(LoginRequest request) 
 	{
-                  User user = repository.findByEmail(request.getEmail())
+                  User user = repository.findByEmail(normalizeEmail(request.getEmail()))
                             .filter(foundUser -> passwordEncoder.matches(
                                     request.getPassword(),
                                     foundUser.getPassword()))
@@ -184,7 +185,7 @@ public class UserServiceImpl implements UserService
 	@Override
 	public UserDetails loadUserByUsername(String username)
 	{
-	    User user = repository.findByEmail(username)
+            User user = repository.findByEmail(normalizeEmail(username))
 	            .orElseThrow(() ->
 	                    new UsernameNotFoundException(
 	                            "User not found with email: " + username));
@@ -195,6 +196,11 @@ public class UserServiceImpl implements UserService
 	            .roles(user.getRole())
 	            .build();
 	}
+
+        private String normalizeEmail(String email)
+        {
+                return email.trim().toLowerCase(Locale.ROOT);
+        }
 	
 
 }
