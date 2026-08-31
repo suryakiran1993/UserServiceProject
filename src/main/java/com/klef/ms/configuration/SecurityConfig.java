@@ -44,13 +44,12 @@ public class SecurityConfig
 
                 .requestMatchers(
                     "/user/",
+                    "/user/add",
                     "/user/login",
                     "/swagger-ui/**",
                     "/v3/api-docs/**"
                 ).permitAll()
-
-                .requestMatchers("/user/add").permitAll()
-
+                                   
                 .anyRequest().authenticated()
             )
 
