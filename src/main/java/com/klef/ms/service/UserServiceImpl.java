@@ -126,10 +126,16 @@ public class UserServiceImpl implements UserService
 
     private UserResponse mapToResponse(User user) 
     {
-        return mapToResponse(user, null);
+        return UserResponse.builder()
+                .id(user.getId())
+                .name(user.getName())
+                .email(user.getEmail())
+                .contact(user.getContact())
+                .role(user.getRole().name())
+                .build();
     }
 
-    private UserResponse mapToResponse(User user, String token) 
+    private UserResponse mapToResponseWithToken(User user, String token) 
     {
         return UserResponse.builder()
                 .id(user.getId())
@@ -189,7 +195,7 @@ public class UserServiceImpl implements UserService
         UserDetails userDetails = loadUserByUsername(user.getEmail());
         String token = jwtUtil.generateToken(userDetails);
 
-        return mapToResponse(user, token);
+        return mapToResponseWithToken(user, token);
     }
 
 	@Override
